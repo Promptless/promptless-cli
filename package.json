@@ -1,0 +1,30 @@
+{
+  "name": "@promptless/promptless-cli",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MPL-2.0",
+  "description": "CLI that detects LLM prose tells — reuses the vendor-slop-cop detection library and prints Elm-style diagnostics or compact ANSI-highlighted output.",
+  "type": "module",
+  "bin": {
+    "promptless": "./src/cli.ts",
+    "pless": "./src/cli.ts"
+  },
+  "scripts": {
+    "promptless": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx": "^3.1.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
+  }
+}
