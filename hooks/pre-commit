@@ -1,0 +1,17 @@
+#!/bin/sh
+# pre-commit: dist must track src.
+# enable once:  git config core.hooksPath hooks
+
+set -e
+
+# nothing to build against.  pass.
+git diff --cached --quiet -- src tsup.config.ts tsconfig.json package.json \
+	&& exit 0
+
+npm run --silent build >/dev/null
+
+# bundle matches tree.  clean.
+git diff --quiet -- dist && exit 0
+
+echo 'pre-commit: dist out of date.  git add dist && retry.' 1>&2
+exit 1
