@@ -1,4 +1,16 @@
-# promptless-cli
+<p align="center" style="padding-top:32px;">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/logo-text-v1-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/img/logo-text-v1.png">
+    <img src="docs/img/logo-text-v1.png" alt="promptless cli" width="300">
+  </picture>
+</p>
+
+<p align="center">
+   <a href="./docs/index">Get Started</a> · 
+   <a href="./docs">Docs</a> · 
+   <a href="example.com">Slack</a>
+<p>
 
 A CLI for helping tech writers. Right now it only detects the rhetorical and structural tells of LLM-generated prose and surfaces diagnostics for people to fix.
 

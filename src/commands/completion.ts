@@ -75,6 +75,19 @@ case $state in
       completion)
         _arguments '1:shell:(zsh bash fish)'
         ;;
+      login)
+        _arguments \\
+          '--no-browser[do not open a browser; print URL only]' \\
+          '(-h --help)'{-h,--help}'[show help]'
+        ;;
+      logout)
+        _arguments '(-h --help)'{-h,--help}'[show help]'
+        ;;
+      whoami)
+        _arguments \\
+          '--json[output JSON]' \\
+          '(-h --help)'{-h,--help}'[show help]'
+        ;;
     esac
     ;;
 esac
@@ -109,6 +122,21 @@ _promptless_complete() {
       ;;
     completion)
       COMPREPLY=($(compgen -W "zsh bash fish" -- "$cur"))
+      ;;
+    login)
+      if [[ "$cur" == -* ]]; then
+        COMPREPLY=($(compgen -W "--no-browser -h --help" -- "$cur"))
+      fi
+      ;;
+    logout)
+      if [[ "$cur" == -* ]]; then
+        COMPREPLY=($(compgen -W "-h --help" -- "$cur"))
+      fi
+      ;;
+    whoami)
+      if [[ "$cur" == -* ]]; then
+        COMPREPLY=($(compgen -W "--json -h --help" -- "$cur"))
+      fi
       ;;
   esac
 }
@@ -154,6 +182,21 @@ function fishScript(): string {
     lines.push(`complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -F`)
     lines.push(
       `complete -c ${bin} -n '__fish_seen_subcommand_from completion' -a 'zsh bash fish'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from login' -l no-browser -d 'Do not open a browser'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from login' -s h -l help -d 'Show help'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from logout' -s h -l help -d 'Show help'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from whoami' -l json -d 'Output JSON'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from whoami' -s h -l help -d 'Show help'`,
     )
     lines.push('')
   }
