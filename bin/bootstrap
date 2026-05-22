@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Check for tools required to build logo images via scripts/export-logo.nu.
+set -u
+
+# tool -> homebrew formula
+tools=(
+    "nu:nushell"
+    "rsvg-convert:librsvg"
+    "magick:imagemagick"
+    "cwebp:webp"
+)
+
+missing=()
+echo "Checking required tools:"
+for entry in "${tools[@]}"; do
+    bin="${entry%%:*}"
+    formula="${entry##*:}"
+    if command -v "$bin" >/dev/null 2>&1; then
+        printf "  \033[32mok\033[0m   %-14s (%s)\n" "$bin" "$(command -v "$bin")"
+    else
+        printf "  \033[31mmiss\033[0m %-14s install with: brew install %s\n" "$bin" "$formula"
+        missing+=("$formula")
+    fi
+done
+
+if [ ${#missing[@]} -eq 0 ]; then
+    echo
+    echo "All set."
+    exit 0
+fi
+
+echo
+echo "To install everything missing:"
+echo "  brew install ${missing[*]}"
+exit 1

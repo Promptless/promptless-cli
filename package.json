@@ -1,30 +1,41 @@
 {
   "name": "@promptless/promptless-cli",
   "version": "0.1.0",
-  "private": true,
   "license": "MPL-2.0",
-  "description": "CLI that detects LLM prose tells — reuses the vendor-slop-cop detection library and prints Elm-style diagnostics or compact ANSI-highlighted output.",
+  "description": "CLI for helping tech writers. Right now it only detects the rhetorical and structural tells of LLM-generated prose and surfaces diagnostics for people to fix.",
   "type": "module",
   "bin": {
-    "promptless": "./src/cli.ts",
-    "pless": "./src/cli.ts"
+    "promptless": "./dist/cli.js",
+    "pless": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "promptless": "tsx src/cli.ts",
+    "build": "tsup && chmod +x dist/cli.js",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",
     "@types/node": "^22.10.0",
-    "tsx": "^4.19.2",
-    "typescript": "~5.9.3"
-  },
-  "dependencies": {
+    "@types/prompts": "^2.4.9",
+    "@types/turndown": "^5.0.6",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
     "remark-parse": "^11.0.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.2",
+    "turndown": "^7.2.4",
+    "typescript": "~5.9.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0"
+  },
+  "dependencies": {
+    "prompts": "^2.4.2"
   }
 }

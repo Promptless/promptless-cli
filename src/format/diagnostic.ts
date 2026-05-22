@@ -26,6 +26,14 @@ export function formatDiagnostic(
     return `${c(DIM)}${file}: no violations${c(RESET)}\n`
   }
 
+  let errorCount = 0
+  let warningCount = 0
+  for (const v of violations) {
+    const rule = RULES_BY_ID[v.ruleId]
+    if ((rule?.severity ?? 'error') === 'warning') warningCount++
+    else errorCount++
+  }
+
   const lineStarts = [0]
   for (let i = 0; i < text.length; i++) {
     if (text.charCodeAt(i) === 10) lineStarts.push(i + 1)
@@ -48,18 +56,21 @@ export function formatDiagnostic(
   let out = ''
   for (const v of sorted) {
     const rule = RULES_BY_ID[v.ruleId]
+    const severity = rule?.severity ?? 'error'
+    const isWarning = severity === 'warning'
     const start = locate(v.startIndex)
     const end = locate(v.endIndex)
     const name = rule?.name ?? v.ruleId
-    const category = rule?.category ?? 'unknown'
     const gutterWidth = String(end.line).length
     const pad = (s: string) => s.padStart(gutterWidth, ' ')
     const empty = ' '.repeat(gutterWidth)
     const bar = `${c(DIM)}|${c(RESET)}`
+    const severityColor = isWarning ? YELLOW : RED
+    const helpLabel = isWarning ? 'hint' : 'help'
 
     out +=
       `${c(BOLD)}${file}:${start.line}:${start.col}${c(RESET)}: ` +
-      `${c(CYAN)}${c(BOLD)}${category}[${v.ruleId}]${c(RESET)}: ` +
+      `${c(severityColor)}${c(BOLD)}${severity}[${v.ruleId}]${c(RESET)}: ` +
       `${c(BOLD)}${name}${c(RESET)}\n`
     out += `${empty} ${bar}\n`
 
@@ -74,7 +85,7 @@ export function formatDiagnostic(
       out += `${c(DIM)}${pad(String(lineNum))}${c(RESET)} ${bar} ${highlighted}\n`
       const before = ' '.repeat(Math.max(0, caretStart - 1))
       const carets = '^'.repeat(Math.max(1, caretEnd - caretStart))
-      out += `${empty} ${bar} ${c(RED)}${c(BOLD)}${before}${carets}${c(RESET)}\n`
+      out += `${empty} ${bar} ${c(severityColor)}${c(BOLD)}${before}${carets}${c(RESET)}\n`
     }
     out += `${empty} ${bar}\n`
 
@@ -82,7 +93,8 @@ export function formatDiagnostic(
       out += `${empty} ${c(DIM)}=${c(RESET)} ${c(YELLOW)}${c(BOLD)}note:${c(RESET)} ${v.explanation}\n`
     }
     if (rule?.tip) {
-      out += `${empty} ${c(DIM)}=${c(RESET)} ${c(CYAN)}${c(BOLD)}help:${c(RESET)} ${rule.tip}\n`
+      const labelColor = isWarning ? YELLOW : CYAN
+      out += `${empty} ${c(DIM)}=${c(RESET)} ${c(labelColor)}${c(BOLD)}${helpLabel}:${c(RESET)} ${rule.tip}\n`
     }
     if (v.suggestedChange !== undefined && v.suggestedChange !== '') {
       out +=
@@ -92,6 +104,14 @@ export function formatDiagnostic(
     out += '\n'
   }
 
-  out += `${c(DIM)}${violations.length} violation${violations.length === 1 ? '' : 's'} in ${file}${c(RESET)}\n`
+  const summary = summarize(errorCount, warningCount)
+  out += `${c(DIM)}${summary} in ${file}${c(RESET)}\n`
   return out
+}
+
+function summarize(errorCount: number, warningCount: number): string {
+  const parts: string[] = []
+  if (errorCount > 0) parts.push(`${errorCount} error${errorCount === 1 ? '' : 's'}`)
+  if (warningCount > 0) parts.push(`${warningCount} warning${warningCount === 1 ? '' : 's'}`)
+  return parts.join(', ')
 }

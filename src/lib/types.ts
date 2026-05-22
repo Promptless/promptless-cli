@@ -5,10 +5,13 @@ export type ViolationCategory =
   | 'structural'
   | 'framing'
 
+export type ViolationSeverity = 'error' | 'warning'
+
 export interface ViolationRule {
   id: string
   name: string
   category: ViolationCategory
+  severity?: ViolationSeverity        // defaults to 'error' when omitted
   description: string
   tip: string          // actionable advice shown in popover
   canRemove: boolean   // whether "Remove" deletes the matched text
