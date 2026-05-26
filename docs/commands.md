@@ -1,6 +1,6 @@
 # Command reference
 
-Every command accepts `-h` / `--help` and prints its own usage. The tables below summarize what is shipping today.
+Every command accepts `-h` / `--help` and prints its own usage.
 
 ## Authentication
 

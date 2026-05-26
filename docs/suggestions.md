@@ -84,7 +84,7 @@ When the result set exceeds the active limit, the footer says so:
   Showing 10 of 23. Use --limit, --all, or filters to narrow.
 ```
 
-Note that the underlying API returns every suggestion in the org in a single response — `--limit` truncates the rendered output, it does not reduce what the CLI fetches. For most orgs the response is small (tens to low hundreds); if yours grows large enough for that to matter, filing an issue to add server-side pagination is the right move.
+The underlying API returns every suggestion in the org in a single response, so `--limit` and `--offset` truncate the rendered output rather than reducing what the CLI fetches.
 
 ## --stat
 
