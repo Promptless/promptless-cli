@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import prompts from 'prompts'
 import { COMMANDS } from './commands/registry'
 
 // Planned subcommands (the CLI is a Swiss-army toolkit for tech writers — not a one-trick
@@ -24,16 +23,6 @@ ${COMMANDS.map((c) => `  ${c.name.padEnd(12)} ${c.summary}`).join('\n')}
 run \`promptless <command> --help\` for command-specific options.
 `
 
-async function pickCommandInteractively(): Promise<string | null> {
-  const answer = await prompts({
-    type: 'select',
-    name: 'command',
-    message: 'Which command?',
-    choices: COMMANDS.map((c) => ({ title: c.name, description: c.summary, value: c.name })),
-  })
-  return (answer.command as string | undefined) ?? null
-}
-
 async function main(): Promise<void> {
   const argv = process.argv.slice(2)
   const first = argv[0]
@@ -44,12 +33,6 @@ async function main(): Promise<void> {
   }
 
   if (!first) {
-    if (process.stdin.isTTY) {
-      const picked = await pickCommandInteractively()
-      if (!picked) process.exit(0)
-      const cmd = COMMANDS.find((c) => c.name === picked)!
-      cmd.run([])
-    }
     process.stderr.write(TOP_HELP)
     process.exit(2)
   }

@@ -1,8 +1,8 @@
 <p align="center" style="padding-top:32px;">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/img/logo-text-v1-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/img/logo-text-v1.png">
-    <img src="docs/img/logo-text-v1.png" alt="promptless cli" width="300">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-text-v1-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-text-v1.png">
+    <img src="assets/logo-text-v1.png" alt="promptless cli" width="300">
   </picture>
 </p>
 

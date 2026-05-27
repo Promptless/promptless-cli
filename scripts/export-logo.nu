@@ -4,7 +4,7 @@
 # webp: cwebp does lossy with sharp chroma subsampling
 
 const self_path = path self
-let dir = dirname $self_path | path join "../docs/img" | path expand
+let dir = dirname $self_path | path join "../assets" | path expand
 
 for variant in ["logo-text-v1" "logo-text-v1-dark"] {
     let src = ($dir | path join $"($variant).svg")
