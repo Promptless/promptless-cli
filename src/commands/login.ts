@@ -292,15 +292,13 @@ async function _run(argv: string[]): Promise<void> {
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('state', state)
 
-  process.stderr.write(
-    `Open this URL in your browser to finish signing in:\n\n  ${authUrl.toString()}\n\n`,
-  )
-
   if (shouldOpenBrowser) {
+    process.stderr.write(
+      `Attempting to open your default browser.\nIf the browser does not open, open the following URL:\n\n${authUrl.toString()}\n\n`,
+    )
     openInBrowser(authUrl.toString())
-    process.stderr.write('Attempted to open your browser. Waiting for the callback...\n')
   } else {
-    process.stderr.write('Waiting for the callback...\n')
+    process.stderr.write(`Open the following URL:\n\n${authUrl.toString()}\n\n`)
   }
 
   const result = await waitForCallback({
