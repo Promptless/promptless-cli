@@ -8,6 +8,8 @@ import {
 import type { KeyObject } from 'node:crypto'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { createInterface } from 'node:readline'
+import type { Interface as ReadlineInterface } from 'node:readline'
 
 import { APP_BASE_URL, AuthError, whoami } from '../lib/api'
 import { loadConfigFile, resolveConfigFilePath, saveConfigFile } from '../lib/config'
@@ -38,6 +40,11 @@ description:
   web app to deliver a newly created API key (encrypted with the public
   key) via a JSON POST to a temporary local HTTP server. The decrypted
   key is then saved to your config file.
+
+  If the browser cannot reach the local HTTP server (e.g. you're SSH'd
+  into a remote box and the browser is on your laptop), the auth page
+  also displays the encrypted code as text — paste it into this
+  terminal at the prompt and press Enter.
 
 config file location (resolved in order):
   $PROMPTLESS_CLI_DEVELOPER_CONFIG_FILE  (if set)
@@ -146,13 +153,40 @@ async function waitForCallback(opts: WaitOptions): Promise<CallbackResult> {
   const origin = expectedOrigin()
 
   return new Promise<CallbackResult>((resolve) => {
-    const timer = setTimeout(() => {
-      resolve({ ok: false, error: `timed out waiting for browser callback (${timeoutMs}ms)` })
-    }, timeoutMs)
+    let settled = false
+    let rl: ReadlineInterface | null = null
+    let timer: ReturnType<typeof setTimeout>
 
     const finish = (result: CallbackResult): void => {
+      if (settled) return
+      settled = true
       clearTimeout(timer)
+      rl?.close()
       resolve(result)
+    }
+
+    timer = setTimeout(() => {
+      finish({
+        ok: false,
+        error: `timed out waiting for browser callback or pasted code (${timeoutMs}ms)`,
+      })
+    }, timeoutMs)
+
+    if (process.stdin.isTTY) {
+      rl = createInterface({ input: process.stdin })
+      rl.on('line', (line) => {
+        if (settled) return
+        const trimmed = line.trim()
+        if (!trimmed) return
+        try {
+          const apiKey = decryptApiKey(trimmed, privateKey)
+          finish({ ok: true, apiKey })
+        } catch {
+          process.stderr.write(
+            "promptless login: that code didn't decrypt — paste the full code, or wait for the browser callback.\n",
+          )
+        }
+      })
     }
 
     server.on('request', async (req, res) => {
@@ -300,6 +334,10 @@ async function _run(argv: string[]): Promise<void> {
   } else {
     process.stderr.write(`Open the following URL:\n\n${authUrl.toString()}\n\n`)
   }
+
+  process.stderr.write(
+    `Waiting for the browser to deliver your API key...\n\nIf the browser can't reach this terminal (e.g. SSH or remote shell), the auth\npage will show a verification code — paste it here and press Enter:\n\n`,
+  )
 
   const result = await waitForCallback({
     port,
