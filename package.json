@@ -15,6 +15,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "promptless": "tsx src/cli.ts",
     "build": "tsup && chmod +x dist/cli.js",
     "typecheck": "tsc --noEmit"
