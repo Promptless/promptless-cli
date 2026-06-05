@@ -12,13 +12,15 @@ import { COMMANDS } from './commands/registry'
 // Naming conventions: lowercase, kebab-case, noun-ish when the command names the artifact
 // it operates on (traces, event), verb-noun when the operation is the point (docs-audit).
 
+const commandNameWidth = Math.max(...COMMANDS.map((command) => command.name.length)) + 2
+
 const TOP_HELP = `promptless — CLI for tech writers
 
 usage:
   promptless <command> [options]
 
 commands:
-${COMMANDS.map((c) => `  ${c.name.padEnd(12)} ${c.summary}`).join('\n')}
+${COMMANDS.map((c) => `  ${c.name.padEnd(commandNameWidth)} ${c.summary}`).join('\n')}
 
 run \`promptless <command> --help\` for command-specific options.
 `
@@ -43,7 +45,7 @@ async function main(): Promise<void> {
     process.exit(2)
   }
 
-  cmd.run(argv.slice(1))
+  await cmd.run(argv.slice(1))
 }
 
 main()

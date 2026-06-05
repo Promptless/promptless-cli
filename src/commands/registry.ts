@@ -1,4 +1,5 @@
 import { runSlopCop } from './slop-cop'
+import { runSkillReportCard } from './skill-report-card'
 import { runCompletion } from './completion'
 import { runAgentView } from './agentview'
 import { runLogin } from './login'
@@ -8,7 +9,7 @@ import { runWhoami } from './whoami'
 export interface CommandEntry {
   name: string
   summary: string
-  run: (argv: string[]) => never
+  run: (argv: string[]) => void | Promise<void>
 }
 
 export const COMMANDS: CommandEntry[] = [
@@ -31,6 +32,11 @@ export const COMMANDS: CommandEntry[] = [
     name: 'slop-cop',
     summary: 'Detect LLM prose tells in text files',
     run: runSlopCop,
+  },
+  {
+    name: 'skill-report-card',
+    summary: 'Score local agent instructions and skills',
+    run: runSkillReportCard,
   },
   {
     name: 'agentview',
