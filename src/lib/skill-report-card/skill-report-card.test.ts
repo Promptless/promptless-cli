@@ -34,6 +34,106 @@ test('discovers root instructions and hidden skill directories', async () => {
   }
 })
 
+test('skips generated worktree and plugin cache copies during broad scans', async () => {
+  const root = makeTempDirectory()
+  try {
+    const homeDirectory = join(root, 'home')
+    const projectDirectory = join(homeDirectory, 'project')
+    const codexSkillDirectory = join(homeDirectory, '.codex', 'skills', 'personal')
+    const worktreeSkillDirectory = join(
+      homeDirectory,
+      '.codex',
+      'worktrees',
+      'c5f4',
+      'project',
+      '.agents',
+      'skills',
+      'copied',
+    )
+    const pluginSkillDirectory = join(
+      homeDirectory,
+      '.claude',
+      'plugins',
+      'cache',
+      'vendor',
+      '1.0.0',
+      '.claude',
+      'skills',
+      'cached',
+    )
+    const codexTempSkillDirectory = join(
+      homeDirectory,
+      '.codex',
+      '.tmp',
+      'plugins',
+      'vendor',
+      'skills',
+      'cached',
+    )
+    const customerRepoSkillDirectory = join(
+      homeDirectory,
+      '.codex',
+      'customer-repos',
+      'acme',
+      '.agents',
+      'skills',
+      'copied',
+    )
+    mkdirSync(projectDirectory, { recursive: true })
+    mkdirSync(codexSkillDirectory, { recursive: true })
+    mkdirSync(worktreeSkillDirectory, { recursive: true })
+    mkdirSync(pluginSkillDirectory, { recursive: true })
+    mkdirSync(codexTempSkillDirectory, { recursive: true })
+    mkdirSync(customerRepoSkillDirectory, { recursive: true })
+    writeFileSync(join(projectDirectory, 'AGENTS.md'), 'Run tests before committing.\n', 'utf-8')
+    writeFileSync(join(codexSkillDirectory, 'SKILL.md'), goodSkill(), 'utf-8')
+    writeFileSync(join(worktreeSkillDirectory, 'SKILL.md'), unsafeSkill(), 'utf-8')
+    writeFileSync(join(pluginSkillDirectory, 'SKILL.md'), unsafeSkill(), 'utf-8')
+    writeFileSync(join(codexTempSkillDirectory, 'SKILL.md'), unsafeSkill(), 'utf-8')
+    writeFileSync(join(customerRepoSkillDirectory, 'SKILL.md'), unsafeSkill(), 'utf-8')
+
+    const discovery = await discoverInstructions(projectDirectory, {
+      includeMachineScan: true,
+      maxDepth: 8,
+      maxDirectories: 1000,
+      homeDirectory,
+    })
+
+    assert.equal(discovery.items.some((item) => item.path.includes('/.codex/worktrees/')), false)
+    assert.equal(discovery.items.some((item) => item.path.includes('/.codex/.tmp/')), false)
+    assert.equal(discovery.items.some((item) => item.path.includes('/.codex/customer-repos/')), false)
+    assert.equal(discovery.items.some((item) => item.path.includes('/.claude/plugins/cache/')), false)
+    assert.ok(discovery.items.some((item) => item.path.endsWith('/project/AGENTS.md')))
+    assert.ok(discovery.items.some((item) => item.path.endsWith('/.codex/skills/personal/SKILL.md')))
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('keeps explicit targets inside generated worktree paths', async () => {
+  const root = makeTempDirectory()
+  try {
+    const homeDirectory = join(root, 'home')
+    const worktreeProject = join(homeDirectory, '.codex', 'worktrees', 'c5f4', 'project')
+    mkdirSync(worktreeProject, { recursive: true })
+    writeFileSync(join(worktreeProject, 'AGENTS.md'), 'Run tests before committing.\n', 'utf-8')
+
+    const discovery = await discoverInstructions(worktreeProject, {
+      includeMachineScan: false,
+      maxDepth: 4,
+      maxDirectories: 100,
+      homeDirectory,
+    })
+
+    assert.deepEqual(
+      discovery.items.map((item) => item.displayPath),
+      ['~/.codex/worktrees/c5f4/project/AGENTS.md'],
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('scores unsafe and stale skills below strong skills', () => {
   const root = makeTempDirectory()
   try {

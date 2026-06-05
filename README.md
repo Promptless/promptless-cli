@@ -82,7 +82,9 @@ The default flow is interactive:
 
 1. Searches the current directory, common home config locations, and bounded
    machine locations for `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, and
-   `.codex/` instruction assets.
+   `.codex/` instruction assets. Generated copies under Codex worktrees, temp
+   plugin storage, customer-repo clones, and plugin caches are skipped during
+   broad scans.
 2. Lets you check or uncheck the discovered files to include.
 3. Detects whether `claude` or `codex` CLIs are installed.
 4. Shows an estimated LLM token count if a provider is available.

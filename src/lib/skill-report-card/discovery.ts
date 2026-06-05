@@ -10,6 +10,7 @@ import type {
 interface SearchRoot {
   path: string
   maxDepth: number
+  includeGeneratedPaths: boolean
 }
 
 export interface DiscoveryOptions {
@@ -57,7 +58,7 @@ export async function discoverInstructions(
   targetPath: string,
   options: DiscoveryOptions,
 ): Promise<DiscoveryResult> {
-  const homeDirectory = options.homeDirectory ?? homedir()
+  const homeDirectory = await realHomeDirectory(options.homeDirectory ?? homedir())
   const state: DiscoveryState = {
     itemsByRealPath: new Map(),
     scannedRoots: [],
@@ -70,13 +71,21 @@ export async function discoverInstructions(
 
   for (const root of await buildSearchRoots(targetPath, options, homeDirectory)) {
     if (state.truncated) break
-    await scanPath(root.path, root.maxDepth, state)
+    await scanPath(root.path, root.maxDepth, root.includeGeneratedPaths, state)
   }
 
   const items = [...state.itemsByRealPath.values()].sort((left, right) =>
     left.displayPath.localeCompare(right.displayPath),
   )
   return { items, scannedRoots: state.scannedRoots, truncated: state.truncated }
+}
+
+async function realHomeDirectory(path: string): Promise<string> {
+  try {
+    return await realpath(path)
+  } catch {
+    return resolve(path)
+  }
 }
 
 async function buildSearchRoots(
@@ -87,18 +96,22 @@ async function buildSearchRoots(
   const roots: SearchRoot[] = []
   const seen = new Set<string>()
 
-  const addRoot = async (path: string, maxDepth: number): Promise<void> => {
+  const addRoot = async (
+    path: string,
+    maxDepth: number,
+    includeGeneratedPaths: boolean,
+  ): Promise<void> => {
     try {
       const resolved = await realpath(resolve(path))
       if (seen.has(resolved)) return
       seen.add(resolved)
-      roots.push({ path: resolved, maxDepth })
+      roots.push({ path: resolved, maxDepth, includeGeneratedPaths })
     } catch {
       return
     }
   }
 
-  await addRoot(targetPath, options.maxDepth)
+  await addRoot(targetPath, options.maxDepth, true)
 
   for (const path of [
     join(homeDirectory, '.agents'),
@@ -111,17 +124,22 @@ async function buildSearchRoots(
     join(homeDirectory, 'Projects'),
     join(homeDirectory, 'Developer'),
   ]) {
-    await addRoot(path, options.maxDepth)
+    await addRoot(path, options.maxDepth, false)
   }
 
   if (options.includeMachineScan) {
-    await addRoot(homeDirectory, Math.min(options.maxDepth, 6))
+    await addRoot(homeDirectory, Math.min(options.maxDepth, 6), false)
   }
 
   return roots
 }
 
-async function scanPath(path: string, maxDepth: number, state: DiscoveryState): Promise<void> {
+async function scanPath(
+  path: string,
+  maxDepth: number,
+  includeGeneratedPaths: boolean,
+  state: DiscoveryState,
+): Promise<void> {
   if (state.truncated) return
 
   let pathStat
@@ -138,13 +156,14 @@ async function scanPath(path: string, maxDepth: number, state: DiscoveryState): 
 
   if (!pathStat.isDirectory()) return
   state.scannedRoots.push(path)
-  await scanDirectory(path, maxDepth, 0, state)
+  await scanDirectory(path, maxDepth, 0, includeGeneratedPaths, state)
 }
 
 async function scanDirectory(
   directory: string,
   maxDepth: number,
   depth: number,
+  includeGeneratedPaths: boolean,
   state: DiscoveryState,
 ): Promise<void> {
   if (state.truncated || depth > maxDepth) return
@@ -177,8 +196,8 @@ async function scanDirectory(
     if (entry.isFile()) {
       await maybeAddInstruction(childPath, state)
     } else if (entry.isDirectory()) {
-      if (shouldSkipDirectory(entry.name)) continue
-      await scanDirectory(childPath, maxDepth, depth + 1, state)
+      if (shouldSkipDirectory(entry.name, childPath, includeGeneratedPaths, state.homeDirectory)) continue
+      await scanDirectory(childPath, maxDepth, depth + 1, includeGeneratedPaths, state)
     } else if (entry.isSymbolicLink()) {
       await maybeScanSymbolicFile(childPath, state)
     }
@@ -196,8 +215,29 @@ async function maybeScanSymbolicFile(path: string, state: DiscoveryState): Promi
   }
 }
 
-function shouldSkipDirectory(name: string): boolean {
-  return EXCLUDED_DIRECTORY_NAMES.has(name)
+function shouldSkipDirectory(
+  name: string,
+  path: string,
+  includeGeneratedPaths: boolean,
+  homeDirectory: string,
+): boolean {
+  if (EXCLUDED_DIRECTORY_NAMES.has(name)) return true
+  return !includeGeneratedPaths && isGeneratedAgentPath(path, homeDirectory)
+}
+
+function isGeneratedAgentPath(path: string, homeDirectory: string): boolean {
+  const relativeToHome = relative(homeDirectory, path).split(sep)
+  return (
+    startsWithSegments(relativeToHome, ['.codex', '.tmp']) ||
+    startsWithSegments(relativeToHome, ['.codex', 'customer-repos']) ||
+    startsWithSegments(relativeToHome, ['.codex', 'worktrees']) ||
+    startsWithSegments(relativeToHome, ['.codex', 'plugins', 'cache']) ||
+    startsWithSegments(relativeToHome, ['.claude', 'plugins', 'cache'])
+  )
+}
+
+function startsWithSegments(segments: string[], prefix: string[]): boolean {
+  return prefix.every((segment, index) => segments[index] === segment)
 }
 
 async function maybeAddInstruction(path: string, state: DiscoveryState): Promise<void> {
