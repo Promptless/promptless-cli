@@ -5,6 +5,10 @@ import { discoverInstructions } from '../lib/skill-report-card/discovery'
 import { detectProviders, estimateLlmUsage, resolveRequestedProvider, runLlmReview } from '../lib/skill-report-card/providers'
 import { formatTerminalSummary, writeHtmlReport } from '../lib/skill-report-card/render'
 import { loadInstructions, scoreInstructions, summarizeScores } from '../lib/skill-report-card/scoring'
+import {
+  groupInstructionsForSelection,
+  groupsForInteractivePrompt,
+} from '../lib/skill-report-card/selectionGroups'
 import { runSkillValidator } from '../lib/skill-report-card/validator'
 import type {
   DiscoveredInstruction,
@@ -81,7 +85,15 @@ export async function runSkillReportCard(argv: string[]): Promise<void> {
     `Found ${discovery.items.length} instruction file${plural(discovery.items.length)} across ${discovery.scannedRoots.length} scan root${plural(discovery.scannedRoots.length)}${discovery.truncated ? ' before hitting the scan cap' : ''}.\n`,
   )
 
-  const selectedItems = await selectInstructions(discovery.items, interactive)
+  const selectionGroups = groupInstructionsForSelection(discovery.items)
+  const promptGroups = groupsForInteractivePrompt(selectionGroups)
+  if (interactive) {
+    process.stdout.write(
+      `Grouped into ${promptGroups.length} repo/location option${plural(promptGroups.length)}.\n`,
+    )
+  }
+
+  const selectedItems = await selectInstructions(discovery.items, promptGroups, interactive)
   if (selectedItems.length === 0) {
     process.stderr.write('promptless skill-report-card: no instruction files selected.\n')
     process.exitCode = 1
@@ -193,6 +205,7 @@ function parseArgs(argv: string[]): Args {
 
 async function selectInstructions(
   items: DiscoveredInstruction[],
+  groups: ReturnType<typeof groupInstructionsForSelection>,
   interactive: boolean,
 ): Promise<DiscoveredInstruction[]> {
   if (!interactive) return items
@@ -201,11 +214,11 @@ async function selectInstructions(
     {
       type: 'multiselect',
       name: 'selectedIds',
-      message: 'Select what to include in this report',
+      message: 'Select repos and skill locations to include in this report',
       hint: 'Space to toggle, enter to continue',
-      choices: items.map((item) => ({
-        title: `${item.displayPath} (${kindLabel(item.kind)})`,
-        value: item.id,
+      choices: groups.map((group) => ({
+        title: group.label,
+        value: group.id,
         selected: true,
       })),
       min: 1,
@@ -219,7 +232,9 @@ async function selectInstructions(
   )
 
   const selectedIds = readSelectedIds(response)
-  return items.filter((item) => selectedIds.has(item.id))
+  return groups
+    .filter((group) => selectedIds.has(group.id))
+    .flatMap((group) => group.items)
 }
 
 async function chooseProvider(
@@ -324,14 +339,6 @@ function readProviderChoice(response: unknown): 'off' | ResolvedLlmProvider {
   if (!response || typeof response !== 'object' || !('provider' in response)) return 'off'
   const provider = (response as { provider: unknown }).provider
   return provider === 'claude' || provider === 'codex' ? provider : 'off'
-}
-
-function kindLabel(kind: DiscoveredInstruction['kind']): string {
-  if (kind === 'agents-md') return 'AGENTS.md'
-  if (kind === 'claude-md') return 'CLAUDE.md'
-  if (kind === 'agent-skill') return '.agents skill'
-  if (kind === 'claude-skill') return '.claude skill'
-  return '.codex skill'
 }
 
 function plural(count: number): string {

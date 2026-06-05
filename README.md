@@ -85,7 +85,9 @@ The default flow is interactive:
    `.codex/` instruction assets. Generated copies under Codex worktrees, temp
    plugin storage, customer-repo clones, and plugin caches are skipped during
    broad scans.
-2. Lets you check or uncheck the discovered files to include.
+2. Groups discovered files by skill-bearing Git repo or global skill location,
+   then lets you check or uncheck those groups. Instruction-only groups are
+   shown only when no skills are found.
 3. Detects whether `claude` or `codex` CLIs are installed.
 4. Shows an estimated LLM token count if a provider is available.
 5. Runs deterministic local checks, uses `skill-validator` when it is installed,

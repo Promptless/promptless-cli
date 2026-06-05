@@ -1,4 +1,5 @@
 import { strict as assert } from 'node:assert'
+import { spawnSync } from 'node:child_process'
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -7,6 +8,7 @@ import { discoverInstructions } from './discovery'
 import { estimateLlmUsage } from './providers'
 import { formatTerminalSummary, writeHtmlReport } from './render'
 import { loadInstructions, scoreInstructions, summarizeScores } from './scoring'
+import { groupInstructionsForSelection, groupsForInteractivePrompt } from './selectionGroups'
 import type { SkillReportCard } from './types'
 import { runSkillValidator } from './validator'
 
@@ -129,6 +131,78 @@ test('keeps explicit targets inside generated worktree paths', async () => {
       discovery.items.map((item) => item.displayPath),
       ['~/.codex/worktrees/c5f4/project/AGENTS.md'],
     )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('groups interactive selection by git repo and global skill locations', async () => {
+  const root = makeTempDirectory()
+  try {
+    const homeDirectory = join(root, 'home')
+    const repoDirectory = join(homeDirectory, 'promptless', 'promptless')
+    const firstSkillDirectory = join(repoDirectory, '.agents', 'skills', 'review-docs')
+    const secondSkillDirectory = join(repoDirectory, '.agents', 'skills', 'ship-docs')
+    const codexSkillDirectory = join(homeDirectory, '.codex', 'skills', 'personal')
+    const claudeSkillDirectory = join(homeDirectory, '.claude', 'skills', 'yc-cli')
+    mkdirSync(firstSkillDirectory, { recursive: true })
+    mkdirSync(secondSkillDirectory, { recursive: true })
+    mkdirSync(codexSkillDirectory, { recursive: true })
+    mkdirSync(claudeSkillDirectory, { recursive: true })
+    initializeGitRepo(repoDirectory)
+    writeFileSync(join(repoDirectory, 'AGENTS.md'), 'Run tests before committing.\n', 'utf-8')
+    writeFileSync(join(firstSkillDirectory, 'SKILL.md'), goodSkill(), 'utf-8')
+    writeFileSync(join(secondSkillDirectory, 'SKILL.md'), goodSkill(), 'utf-8')
+    writeFileSync(join(codexSkillDirectory, 'SKILL.md'), goodSkill(), 'utf-8')
+    writeFileSync(join(claudeSkillDirectory, 'SKILL.md'), goodSkill(), 'utf-8')
+
+    const discovery = await discoverInstructions(repoDirectory, {
+      includeMachineScan: true,
+      maxDepth: 8,
+      maxDirectories: 1000,
+      homeDirectory,
+    })
+    const groups = groupInstructionsForSelection(discovery.items, homeDirectory)
+    const promptGroups = groupsForInteractivePrompt(groups)
+    const labels = groups.map((group) => group.label)
+    const promptLabels = promptGroups.map((group) => group.label)
+
+    assert.ok(groups.length < discovery.items.length)
+    assert.ok(labels.some((label) => label.includes('~/promptless/promptless (2 skills, 1 instruction file)')))
+    assert.ok(labels.some((label) => label.includes('Codex user skills (~/.codex/skills) (1 skill)')))
+    assert.ok(labels.some((label) => label.includes('Claude Code user skills (~/.claude/skills) (1 skill)')))
+    assert.deepEqual(promptLabels, labels)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('hides instruction-only repos from the interactive prompt when skills exist', async () => {
+  const root = makeTempDirectory()
+  try {
+    const homeDirectory = join(root, 'home')
+    const skillRepo = join(homeDirectory, 'skill-repo')
+    const rootOnlyRepo = join(homeDirectory, 'root-only-repo')
+    const skillDirectory = join(skillRepo, '.agents', 'skills', 'review-docs')
+    mkdirSync(skillDirectory, { recursive: true })
+    mkdirSync(rootOnlyRepo, { recursive: true })
+    initializeGitRepo(skillRepo)
+    initializeGitRepo(rootOnlyRepo)
+    writeFileSync(join(skillRepo, 'AGENTS.md'), 'Run tests before committing.\n', 'utf-8')
+    writeFileSync(join(skillDirectory, 'SKILL.md'), goodSkill(), 'utf-8')
+    writeFileSync(join(rootOnlyRepo, 'AGENTS.md'), 'Run tests before committing.\n', 'utf-8')
+
+    const discovery = await discoverInstructions(homeDirectory, {
+      includeMachineScan: false,
+      maxDepth: 5,
+      maxDirectories: 1000,
+      homeDirectory,
+    })
+    const promptGroups = groupsForInteractivePrompt(groupInstructionsForSelection(discovery.items, homeDirectory))
+    const labels = promptGroups.map((group) => group.label)
+
+    assert.equal(labels.some((label) => label.includes('skill-repo')), true)
+    assert.equal(labels.some((label) => label.includes('root-only-repo')), false)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -301,6 +375,11 @@ console.log(JSON.stringify({
 
 function makeTempDirectory(): string {
   return mkdtempSync(join(tmpdir(), 'promptless-skill-report-card-test-'))
+}
+
+function initializeGitRepo(path: string): void {
+  const result = spawnSync('git', ['init'], { cwd: path, encoding: 'utf-8' })
+  assert.equal(result.status, 0)
 }
 
 function goodSkill(): string {
