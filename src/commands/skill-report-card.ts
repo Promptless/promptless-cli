@@ -258,9 +258,10 @@ async function chooseProvider(
 
   if (!interactive) return null
 
-  const choices = [{ title: 'Skip LLM review', value: 'off' }]
+  const choices = []
   if (availability.claude) choices.push({ title: 'Use Claude CLI', value: 'claude' })
   if (availability.codex) choices.push({ title: 'Use Codex CLI', value: 'codex' })
+  choices.push({ title: 'Skip LLM review - only deterministic checks will run', value: 'off' })
 
   if (choices.length === 1) {
     process.stdout.write('\nLLM review\nNo claude or codex CLI detected; skipping LLM review.\n')
