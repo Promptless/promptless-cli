@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { discoverInstructions } from './discovery'
-import { estimateLlmUsage } from './providers'
+import { estimateLlmUsage, runLlmReview } from './providers'
 import { formatTerminalSummary, writeHtmlReport } from './render'
 import { loadInstructions, scoreInstructions, summarizeScores } from './scoring'
 import { groupInstructionsForSelection, groupsForInteractivePrompt } from './selectionGroups'
@@ -367,6 +367,64 @@ console.log(JSON.stringify({
     assert.equal(summary.checkedCount, 1)
     assert.equal(summary.findings.length, 1)
     assert.equal(summary.findings[0].title, 'Links')
+  } finally {
+    process.env.PATH = originalPath
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('reads Claude structured_output wrapper for LLM review results', () => {
+  const root = makeTempDirectory()
+  const originalPath = process.env.PATH
+  try {
+    const binDirectory = join(root, 'bin')
+    const skillPath = join(root, 'SKILL.md')
+    mkdirSync(binDirectory, { recursive: true })
+    const claudePath = join(binDirectory, 'claude')
+    writeFileSync(skillPath, goodSkill(), 'utf-8')
+    writeFileSync(
+      claudePath,
+      `#!/usr/bin/env node
+console.log(JSON.stringify({
+  type: "result",
+  subtype: "success",
+  result: "",
+  structured_output: {
+    summary: "ok",
+    findings: [
+      {
+        severity: "should-fix",
+        dimension: "triggering",
+        title: "Trigger is vague",
+        message: "The trigger could be more specific.",
+        path: process.argv[1] ?? "SKILL.md",
+        remediation: null
+      }
+    ]
+  }
+}))
+`,
+      'utf-8',
+    )
+    chmodSync(claudePath, 0o755)
+    process.env.PATH = `${binDirectory}:${originalPath ?? ''}`
+
+    const loaded = loadInstructions([
+      {
+        id: skillPath,
+        path: skillPath,
+        rootPath: root,
+        displayPath: skillPath,
+        title: 'good',
+        kind: 'agent-skill',
+        sizeBytes: 1,
+      },
+    ])
+
+    const review = runLlmReview('claude', loaded)
+    assert.equal(review.rawSummary, 'ok')
+    assert.equal(review.findings.length, 1)
+    assert.equal(review.findings[0].source, 'llm')
   } finally {
     process.env.PATH = originalPath
     rmSync(root, { recursive: true, force: true })

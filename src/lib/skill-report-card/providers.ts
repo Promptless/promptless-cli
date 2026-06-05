@@ -157,9 +157,15 @@ function parseProviderOutput(stdout: string): ParsedLlmOutput {
   const direct = parsedOutputFromObject(parsed)
   if (direct) return direct
 
+  const structuredOutput = readRecordProperty(parsed, 'structured_output')
+  if (structuredOutput) {
+    const structured = parsedOutputFromObject(structuredOutput)
+    if (structured) return structured
+  }
+
   const resultText = readStringProperty(parsed, 'result') ?? readStringProperty(parsed, 'message')
   if (resultText) {
-    const nested = parseJson(resultText)
+    const nested = parseJsonFromText(resultText)
     if (nested) {
       const nestedOutput = parsedOutputFromObject(nested)
       if (nestedOutput) return nestedOutput
@@ -232,6 +238,15 @@ function normalizeDimension(value: string): ScoreDimension {
   return 'governance'
 }
 
+function parseJsonFromText(value: string): Record<string, unknown> | null {
+  return parseJson(value) ?? parseJson(extractFencedJson(value))
+}
+
+function extractFencedJson(value: string): string {
+  const match = value.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  return match?.[1]?.trim() ?? value
+}
+
 function parseJson(value: string): Record<string, unknown> | null {
   try {
     const parsed: unknown = JSON.parse(value)
@@ -248,6 +263,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function readStringProperty(object: Record<string, unknown>, property: string): string | null {
   const value = object[property]
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function readRecordProperty(object: Record<string, unknown>, property: string): Record<string, unknown> | null {
+  const value = object[property]
+  return isRecord(value) ? value : null
 }
 
 function firstUsefulLine(output: string): string | null {
