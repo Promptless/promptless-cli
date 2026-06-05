@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.log
+promptless-skill-report-card.html
 .DS_Store
 .env
 .env.*

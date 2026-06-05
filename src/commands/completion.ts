@@ -72,6 +72,19 @@ case $state in
           '(-h --help)'{-h,--help}'[show help]' \\
           '*:file:_files'
         ;;
+      skill-report-card)
+        _arguments \\
+          '(-y --yes)'{-y,--yes}'[run without prompts]' \\
+          '--llm[LLM provider]:provider:(off auto claude codex)' \\
+          '--out[HTML report path]:file:_files' \\
+          '--no-open[do not open the generated HTML report]' \\
+          '--no-machine-scan[skip broader home scan]' \\
+          '--max-depth[recursion depth]:number:' \\
+          '--max-directories[directory scan cap]:number:' \\
+          '--fail-under[minimum passing score]:score:' \\
+          '(-h --help)'{-h,--help}'[show help]' \\
+          '*:path:_files'
+        ;;
       completion)
         _arguments '1:shell:(zsh bash fish)'
         ;;
@@ -116,6 +129,13 @@ _promptless_complete() {
     slop-cop)
       if [[ "$cur" == -* ]]; then
         COMPREPLY=($(compgen -W "--debug --color --no-color --format --from -h --help" -- "$cur"))
+      else
+        COMPREPLY=($(compgen -f -- "$cur"))
+      fi
+      ;;
+    skill-report-card)
+      if [[ "$cur" == -* ]]; then
+        COMPREPLY=($(compgen -W "--yes -y --llm --out --no-open --no-machine-scan --max-depth --max-directories --fail-under -h --help" -- "$cur"))
       else
         COMPREPLY=($(compgen -f -- "$cur"))
       fi
@@ -180,6 +200,34 @@ function fishScript(): string {
       `complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -s h -l help -d 'Show help'`,
     )
     lines.push(`complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -F`)
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -s y -l yes -d 'Run without prompts'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -l llm -x -a 'off auto claude codex' -d 'LLM provider'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -l out -r -d 'HTML report path'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -l no-open -d 'Do not open HTML report'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -l no-machine-scan -d 'Skip broader home scan'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -l max-depth -x -d 'Recursion depth'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -l max-directories -x -d 'Directory scan cap'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -l fail-under -x -d 'Minimum passing score'`,
+    )
+    lines.push(
+      `complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -s h -l help -d 'Show help'`,
+    )
+    lines.push(`complete -c ${bin} -n '__fish_seen_subcommand_from skill-report-card' -F`)
     lines.push(
       `complete -c ${bin} -n '__fish_seen_subcommand_from completion' -a 'zsh bash fish'`,
     )
