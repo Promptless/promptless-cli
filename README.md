@@ -16,30 +16,21 @@ A CLI for helping tech writers. Right now it only detects the rhetorical and str
 
 ## Install
 
-Requires Node.js 20+ and npm. Pandoc is optional, used only for non-markdown formats (`.rst`, `.org`, `.adoc`, `.tex`, …).
+Requires Node.js 22+ and npm. Pandoc is optional, used only for non-markdown formats (`.rst`, `.org`, `.adoc`, `.tex`, …).
 
-### Install globally from GitHub
-
-```sh
-npm install -g github:Promptless/promptless-cli
-```
-
-Or with an explicit git URL (useful in CI):
+Set up Promptless for your repositories without installing anything:
 
 ```sh
-npm install -g git+https://github.com/Promptless/promptless-cli.git
-# or over SSH:
-npm install -g git+ssh://git@github.com/Promptless/promptless-cli.git
+npx -y @promptless/cli@latest setup
 ```
 
-This exposes two binaries on your `PATH`: `promptless` and `pless`.
+Or install the `promptless` binary globally:
 
 ```sh
-promptless sample.md
-pless --diagnostic sample.md
+npm i -g @promptless/cli
+promptless slop-cop sample.md
+promptless slop-cop --debug sample.md
 ```
-
-> The repo is currently internal — you'll need GitHub access to `Promptless/promptless-cli` for the install to fetch.
 
 ### Or clone and run locally
 
@@ -47,18 +38,24 @@ pless --diagnostic sample.md
 git clone git@github.com:Promptless/promptless-cli.git
 cd promptless-cli
 npm install
-npm run promptless -- path/to/file.md
+npm run promptless -- slop-cop path/to/file.md
 ```
 
 ## Usage
 
 ```
-promptless [options] <file>...
+promptless <command> [options]
 ```
 
-Run `promptless --help` for the full option list (input format, color, diagnostic vs. human mode, pandoc passthrough).
+Run `promptless --help` for the command list and `promptless <command> --help` for each command's options.
 
-Exit codes: `0` clean, `1` violations found, `2` argument error.
+`slop-cop` exit codes: `0` clean, `1` violations found, `2` argument error.
+
+## Releasing
+
+Pushing a `v*` tag whose version matches `package.json` runs `.github/workflows/release.yml`, which publishes to npm with provenance and creates a GitHub release.
+
+The first publish of `@promptless/cli` is manual: an owner of the `promptless` npm organization runs `npm publish --access public` from a clean checkout of the tagged commit. After the package exists, configure this repository and `release.yml` as its trusted publisher on npmjs.com, so later releases publish from the workflow through OIDC with no npm token.
 
 ## License
 
