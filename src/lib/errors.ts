@@ -21,6 +21,9 @@ export const ERROR_CODES = [
   'cancelled',
   'config_invalid',
   'internal_error',
+  'admin_required',
+  'repos_not_installed',
+  'doc_collection_required',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
