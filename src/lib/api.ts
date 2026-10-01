@@ -65,29 +65,32 @@ function formatValidationItem(item: unknown): string | null {
 /**
  * Extract an error code and message from a runtime error body. Handles the
  * FastAPI shapes `{"detail": "..."}`, `{"detail": {"code", "message"}}`, and
- * `{"detail": [{"loc", "msg"}]}`, plus the runtime's `{"error", "message"}`.
- * `error` counts as a code only when it is snake_case; otherwise it is the message.
+ * `{"detail": [{"loc", "msg"}]}`, plus the runtime's `{"error", "message"}` and
+ * `{"error", "detail"}`. `error` counts as a code only when it is snake_case;
+ * otherwise it is the message.
  *
  * @example
  *   parseErrorBody({ detail: { code: 'doc_collection_required', message: 'Add a docs repo' } })
  *   // → { code: 'doc_collection_required', message: 'Add a docs repo' }
+ *   parseErrorBody({ error: 'trigger_not_backfillable', detail: 'Only GitHub PR triggers' })
+ *   // → { code: 'trigger_not_backfillable', message: 'Only GitHub PR triggers' }
  */
 export function parseErrorBody(body: unknown): ParsedErrorBody {
   if (typeof body !== 'object' || body === null) return { code: null, message: null }
   const detail = (body as Record<string, unknown>).detail
-
-  if (typeof detail === 'string') return { code: null, message: detail }
-  if (Array.isArray(detail)) {
-    const parts = detail.map(formatValidationItem).filter((part) => part !== null)
-    return { code: null, message: parts.length > 0 ? parts.join('; ') : null }
-  }
-  if (typeof detail === 'object' && detail !== null) {
-    const code = codeOrNull(stringField(detail, 'code') ?? stringField(detail, 'error'))
-    return { code, message: stringField(detail, 'message') }
-  }
-
   const error = stringField(body, 'error')
   const code = codeOrNull(error)
+
+  if (typeof detail === 'string') return { code, message: detail }
+  if (Array.isArray(detail)) {
+    const parts = detail.map(formatValidationItem).filter((part) => part !== null)
+    return { code, message: parts.length > 0 ? parts.join('; ') : null }
+  }
+  if (typeof detail === 'object' && detail !== null) {
+    const detailCode = codeOrNull(stringField(detail, 'code') ?? stringField(detail, 'error'))
+    return { code: detailCode ?? code, message: stringField(detail, 'message') }
+  }
+
   return { code, message: stringField(body, 'message') ?? (code === null ? error : null) }
 }
 
@@ -154,7 +157,7 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
   }
   if (!res.ok) {
     const parsed = parseErrorBody(body)
-    const message = parsed.message ?? `HTTP ${res.status} ${res.statusText}`
+    const message = parsed.message ?? parsed.code ?? `HTTP ${res.status} ${res.statusText}`
     throw new ApiError(res.status, parsed.code, `${method} ${path} failed: ${message}`, body)
   }
   return (body ?? undefined) as T

@@ -46,7 +46,14 @@ export function parseGitHubRemote(remoteUrl: string): GitHubRepo | null {
   if (!['https:', 'http:', 'ssh:', 'git:', 'git+ssh:'].includes(parsed.protocol)) return null
   if (!GITHUB_HOSTS.has(parsed.hostname.toLowerCase())) return null
   if (parsed.search || parsed.hash) return null
-  return fromPath(decodeURIComponent(parsed.pathname))
+  let pathname: string
+  try {
+    pathname = decodeURIComponent(parsed.pathname)
+  } catch {
+    // Malformed percent-encoding (URIError): not a repository path we can match.
+    return null
+  }
+  return fromPath(pathname)
 }
 
 /** The github.com repository of `origin` in `cwd`, or null when there is none. */

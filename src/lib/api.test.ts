@@ -45,6 +45,17 @@ describe('parseErrorBody', () => {
     })
   })
 
+  it('reads the runtime error/detail shape', () => {
+    assert.deepEqual(
+      parseErrorBody({ error: 'trigger_not_backfillable', detail: 'Only pull request triggers can be backfilled' }),
+      { code: 'trigger_not_backfillable', message: 'Only pull request triggers can be backfilled' },
+    )
+  })
+
+  it('reads a bare runtime error code', () => {
+    assert.deepEqual(parseErrorBody({ error: 'trigger_not_found' }), { code: 'trigger_not_found', message: null })
+  })
+
   it('treats a prose error field as the message', () => {
     assert.deepEqual(parseErrorBody({ error: 'Validation failed', validation_errors: [] }), {
       code: null,
@@ -87,6 +98,10 @@ describe('request', () => {
     'POST /conflict': (_req, res) => {
       res.writeHead(409, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ detail: { code: 'doc_collection_required', message: 'Add a docs repository' } }))
+    },
+    'GET /missing-trigger': (_req, res) => {
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'trigger_not_found' }))
     },
     'GET /bad-gateway': (_req, res) => {
       res.writeHead(502, { 'Content-Type': 'text/html' })
@@ -152,6 +167,16 @@ describe('request', () => {
       assert.equal(err.status, 409)
       assert.equal(err.code, 'doc_collection_required')
       assert.deepEqual(err.body, { detail: { code: 'doc_collection_required', message: 'Add a docs repository' } })
+      return true
+    })
+  })
+
+  it('names the error code in the message when the body has no message', async () => {
+    await assert.rejects(request('GET', '/missing-trigger', { apiSecret: 'k', baseUrl }), (err) => {
+      assert.ok(err instanceof ApiError)
+      assert.equal(err.status, 404)
+      assert.equal(err.code, 'trigger_not_found')
+      assert.equal(err.message, 'GET /missing-trigger failed: trigger_not_found')
       return true
     })
   })

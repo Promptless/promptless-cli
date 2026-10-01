@@ -46,6 +46,7 @@ describe('parseGitHubRemote', () => {
     'https://github.com/acme/api/tree/main',
     '/srv/git/api.git',
     'file:///srv/git/api.git',
+    'https://github.com/acme/%E0%A4%A',
   ]) {
     it(`returns null for ${JSON.stringify(url)}`, () => {
       assert.equal(parseGitHubRemote(url), null)
