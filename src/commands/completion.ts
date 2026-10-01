@@ -87,6 +87,8 @@ case $state in
           '--json[output JSON]' \\
           '(-h --help)'{-h,--help}'[show help]'
         ;;
+      setup)
+        ;;
     esac
     ;;
 esac
@@ -136,6 +138,9 @@ _promptless_complete() {
       if [[ "$cur" == -* ]]; then
         COMPREPLY=($(compgen -W "--json -h --help" -- "$cur"))
       fi
+      ;;
+    setup)
+      COMPREPLY=()
       ;;
   esac
 }

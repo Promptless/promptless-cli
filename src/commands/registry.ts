@@ -4,6 +4,7 @@ import { runAgentView } from './agentview'
 import { runLogin } from './login'
 import { runLogout } from './logout'
 import { runWhoami } from './whoami'
+import { runSetup } from './setup/index'
 
 export interface CommandEntry {
   name: string
@@ -12,6 +13,11 @@ export interface CommandEntry {
 }
 
 export const COMMANDS: CommandEntry[] = [
+  {
+    name: 'setup',
+    summary: 'Connect GitHub and start keeping your docs current (not available yet)',
+    run: runSetup,
+  },
   {
     name: 'login',
     summary: 'Sign in and cache a long-lived API key for the CLI',
