@@ -70,7 +70,7 @@ The command runs these steps in order:
 
 | Flag | Effect |
 | --- | --- |
-| `--org <id>` | Run against this organization. When the saved key belongs to another organization, setup signs in again. |
+| `--org <id>` | Run against this organization. When the saved key belongs to another organization, setup signs in again with this organization preselected on the sign-in page. |
 | `--docs-repo <owner/repo>` | Use this documentation repository instead of asking. |
 | `--source-repo <owner/repo>` | Watch this repository instead of asking. Repeat the flag for several repositories. |
 | `--trigger-on <event>` | The pull request events that update the docs: `opened`, `first_approval`, `merge`, or `updated`. Repeat the flag or separate events with commas. The default is `merge`. |

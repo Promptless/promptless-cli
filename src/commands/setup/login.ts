@@ -41,6 +41,7 @@ async function loopbackSignIn(opts: SignInOptions): Promise<string> {
     timeoutMs: LOGIN_TIMEOUT_MS,
     readPastedCode: true,
     intent: 'setup',
+    orgId: opts.org ?? undefined,
     onInvalidPaste: () => warn("That code didn't decrypt. Paste the full code, or wait for the browser."),
   })
   const url = opts.newAccount ? buildSignUpUrl(APP_BASE_URL, login.authUrl) : login.authUrl

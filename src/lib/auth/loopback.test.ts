@@ -61,6 +61,11 @@ describe('buildAuthUrl', () => {
     assert.equal(url.searchParams.has('intent'), false)
   })
 
+  it('omits org_id by default and adds it when given', () => {
+    assert.equal(new URL(buildAuthUrl(base)).searchParams.has('org_id'), false)
+    assert.equal(new URL(buildAuthUrl({ ...base, orgId: 'org_1' })).searchParams.get('org_id'), 'org_1')
+  })
+
   it('adds intent when given', () => {
     assert.equal(new URL(buildAuthUrl({ ...base, intent: 'setup' })).searchParams.get('intent'), 'setup')
   })

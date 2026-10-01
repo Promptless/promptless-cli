@@ -47,6 +47,8 @@ export interface LoopbackLoginOptions {
   onInvalidPaste?: () => void
   /** Tells the auth page which flow started the login (for example `setup`). */
   intent?: string
+  /** The organization the auth page preselects. The user can still choose another. */
+  orgId?: string
   /** Defaults to `APP_BASE_URL`. The callback accepts only this origin. */
   appBaseUrl?: string
 }
@@ -110,6 +112,7 @@ interface AuthUrlParams {
   redirectUri: string
   state: string
   intent?: string
+  orgId?: string
 }
 
 /**
@@ -133,6 +136,7 @@ export function buildAuthUrl(params: AuthUrlParams): string {
   authUrl.searchParams.set('redirect_uri', params.redirectUri)
   authUrl.searchParams.set('state', params.state)
   if (params.intent) authUrl.searchParams.set('intent', params.intent)
+  if (params.orgId) authUrl.searchParams.set('org_id', params.orgId)
   return authUrl.toString()
 }
 
@@ -195,6 +199,7 @@ export async function startLoopbackLogin(opts: LoopbackLoginOptions): Promise<Lo
     redirectUri,
     state: expectedState,
     intent: opts.intent,
+    orgId: opts.orgId,
   })
 
   let settled = false

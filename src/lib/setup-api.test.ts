@@ -234,23 +234,19 @@ describe('setup API contract', () => {
       await beginGitHubInstall(client, ORG),
       'https://github.com/apps/promptless/installations/new?state=s',
     )
-    assert.deepEqual(only().body, { organization_id: ORG, return_to: GITHUB_CONNECTED_RETURN_PATH })
+    assert.deepEqual(only().body, { org_id: ORG, return_to: GITHUB_CONNECTED_RETURN_PATH })
   })
 
   it('refreshes GitHub installations', async () => {
     replies['POST /integrations/github/pull'] = { status: 200, body: { installations: [] } }
     await pullGitHubInstallations(client, ORG)
-    assert.deepEqual(only().body, { organization_id: ORG })
+    assert.deepEqual(only().body, { org_id: ORG })
   })
 
-  it('completes onboarding, with or without a billing field', async () => {
+  it('completes onboarding with an empty body', async () => {
     replies[`POST /organizations/${ORG}/onboarding/complete`] = { status: 200, body: { status: 'ok' } }
     assert.deepEqual(await completeOnboarding(client, ORG), { status: 'ok' })
     assert.equal(only().body, undefined)
-
-    const withBilling = { status: 'ok', billing: { status: 'trialing', trial_end: '2026-10-15T00:00:00+00:00' } }
-    replies[`POST /organizations/${ORG}/onboarding/complete`] = { status: 200, body: withBilling }
-    assert.deepEqual(await completeOnboarding(client, ORG), withBilling)
   })
 
   it('surfaces 409 doc_collection_required from onboarding completion', async () => {

@@ -122,10 +122,9 @@ export interface ConfigValidationIssue {
   line: number | null
 }
 
-/** The runtime's onboarding completion response. `billing` appears once completion starts a trial. */
+/** `POST /organizations/{org}/onboarding/complete`. The trial it starts is read back from `setup/status`. */
 export interface OnboardingCompleteResponse {
   status: 'ok'
-  billing?: BillingStatus | null
 }
 
 export type BackfillLookbackDays = 7 | 14 | 30
@@ -225,14 +224,14 @@ export function postApply(client: SetupClient, orgId: string, body: ApplyRequest
 export async function beginGitHubInstall(client: SetupClient, orgId: string): Promise<string> {
   const response = await request<{ redirect_url: string }>('POST', '/integrations/github/begin', {
     ...client,
-    body: { organization_id: orgId, return_to: GITHUB_CONNECTED_RETURN_PATH },
+    body: { org_id: orgId, return_to: GITHUB_CONNECTED_RETURN_PATH },
   })
   return response.redirect_url
 }
 
 /** Ask the runtime to re-read the organization's GitHub installations from GitHub. */
 export async function pullGitHubInstallations(client: SetupClient, orgId: string): Promise<void> {
-  await request<unknown>('POST', '/integrations/github/pull', { ...client, body: { organization_id: orgId } })
+  await request<unknown>('POST', '/integrations/github/pull', { ...client, body: { org_id: orgId } })
 }
 
 export function completeOnboarding(client: SetupClient, orgId: string): Promise<OnboardingCompleteResponse> {
