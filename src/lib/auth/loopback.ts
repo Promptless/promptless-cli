@@ -30,7 +30,13 @@ export const CALLBACK_PATH = '/auth/callback'
 
 const MAX_BODY_BYTES = 64 * 1024
 
-export type CallbackResult = { ok: true; apiKey: string } | { ok: false; error: string }
+/**
+ * The login outcome. On failure, `code` is the error code the auth page sent
+ * (for example `user_cancelled`), or null when the CLI detected the failure itself.
+ */
+export type CallbackResult =
+  | { ok: true; apiKey: string }
+  | { ok: false; error: string; code: string | null }
 
 export interface LoopbackLoginOptions {
   /** Milliseconds to wait for a callback or pasted code before failing. */
@@ -104,6 +110,20 @@ interface AuthUrlParams {
   redirectUri: string
   state: string
   intent?: string
+}
+
+/**
+ * Wrap an auth URL in the sign-up page, which sends a new user on to the auth
+ * page once their account exists.
+ *
+ * @example
+ *   buildSignUpUrl('https://app.example', 'https://app.example/cli/auth?state=s')
+ *   // → 'https://app.example/sign-up?redirect_url=https%3A%2F%2Fapp.example%2Fcli%2Fauth%3Fstate%3Ds'
+ */
+export function buildSignUpUrl(appBaseUrl: string, authUrl: string): string {
+  const signUpUrl = new URL(`${appBaseUrl}/sign-up`)
+  signUpUrl.searchParams.set('redirect_url', authUrl)
+  return signUpUrl.toString()
 }
 
 export function buildAuthUrl(params: AuthUrlParams): string {
@@ -197,6 +217,7 @@ export async function startLoopbackLogin(opts: LoopbackLoginOptions): Promise<Lo
     finish({
       ok: false,
       error: `timed out waiting for browser callback or pasted code (${opts.timeoutMs}ms)`,
+      code: null,
     })
   }, opts.timeoutMs)
 
@@ -256,7 +277,7 @@ export async function startLoopbackLogin(opts: LoopbackLoginOptions): Promise<Lo
       applyCors(res, origin)
       res.writeHead(400, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(body))
-      finish({ ok: false, error })
+      finish({ ok: false, error, code: null })
     }
 
     let payload: Record<string, unknown>
@@ -273,6 +294,24 @@ export async function startLoopbackLogin(opts: LoopbackLoginOptions): Promise<Lo
     const encryptedKey = payload.encrypted_key
     const receivedState = payload.state
     const receivedKeyType = payload.key_type
+
+    // The auth page reports a cancel or failure as `{error, error_description, state}`
+    // and sends no key_type, so this check comes before the key_type check.
+    if (typeof payload.error === 'string') {
+      if (typeof receivedState !== 'string' || receivedState !== expectedState) {
+        reject({ error: 'state_mismatch' }, 'state parameter mismatch — possible CSRF or stale callback')
+        return
+      }
+      const description =
+        typeof payload.error_description === 'string' && payload.error_description.length > 0
+          ? payload.error_description
+          : payload.error
+      applyCors(res, origin)
+      res.writeHead(204)
+      res.end()
+      finish({ ok: false, error: description, code: payload.error })
+      return
+    }
 
     if (receivedKeyType !== KEY_TYPE) {
       reject(

@@ -3,7 +3,7 @@ import { constants as cryptoConstants, createPublicKey, publicEncrypt } from 'no
 import { request as httpRequest } from 'node:http'
 import { describe, it } from 'node:test'
 
-import { CALLBACK_PATH, KEY_TYPE, buildAuthUrl, startLoopbackLogin } from './loopback'
+import { CALLBACK_PATH, KEY_TYPE, buildAuthUrl, buildSignUpUrl, startLoopbackLogin } from './loopback'
 import type { LoopbackLogin } from './loopback'
 
 const APP = 'https://app.example.test'
@@ -63,6 +63,15 @@ describe('buildAuthUrl', () => {
 
   it('adds intent when given', () => {
     assert.equal(new URL(buildAuthUrl({ ...base, intent: 'setup' })).searchParams.get('intent'), 'setup')
+  })
+})
+
+describe('buildSignUpUrl', () => {
+  it('carries the full auth URL as redirect_url', () => {
+    const authUrl = `${APP}/cli/auth?public_key=pk&state=s&intent=setup`
+    const url = new URL(buildSignUpUrl(APP, authUrl))
+    assert.equal(url.origin + url.pathname, `${APP}/sign-up`)
+    assert.equal(url.searchParams.get('redirect_url'), authUrl)
   })
 })
 
@@ -182,5 +191,39 @@ describe('startLoopbackLogin', () => {
     const result = await login.result
     assert.equal(result.ok, false)
     assert.match(result.ok ? '' : result.error, /timed out/)
+  })
+
+  it('settles with the auth page error code on a cancel callback', async () => {
+    const login = await start()
+    const { redirectUri, state } = params(login)
+    const response = await post(
+      redirectUri,
+      JSON.stringify({ error: 'user_cancelled', error_description: 'User cancelled CLI authorization.', state }),
+      APP,
+    )
+    assert.equal(response.status, 204)
+    assert.deepEqual(await login.result, {
+      ok: false,
+      error: 'User cancelled CLI authorization.',
+      code: 'user_cancelled',
+    })
+  })
+
+  it('falls back to the error code when a cancel callback has no description', async () => {
+    const login = await start()
+    const { redirectUri, state } = params(login)
+    assert.equal((await post(redirectUri, JSON.stringify({ error: 'issue_failed', state }), APP)).status, 204)
+    assert.deepEqual(await login.result, { ok: false, error: 'issue_failed', code: 'issue_failed' })
+  })
+
+  it('rejects a cancel callback with the wrong state', async () => {
+    const login = await start()
+    const { redirectUri } = params(login)
+    const response = await post(redirectUri, JSON.stringify({ error: 'user_cancelled', state: 'wrong' }), APP)
+    assert.equal(response.status, 400)
+    assert.equal(JSON.parse(response.body).error, 'state_mismatch')
+    const result = await login.result
+    assert.equal(result.ok, false)
+    assert.equal(result.ok ? 'ok' : result.code, null)
   })
 })
