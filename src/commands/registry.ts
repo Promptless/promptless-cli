@@ -15,7 +15,7 @@ export interface CommandEntry {
 export const COMMANDS: CommandEntry[] = [
   {
     name: 'setup',
-    summary: 'Connect GitHub and start keeping your docs current (not available yet)',
+    summary: 'Connect GitHub and start keeping your docs current',
     run: runSetup,
   },
   {
