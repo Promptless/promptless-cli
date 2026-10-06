@@ -1,29 +1,42 @@
 {
-  "name": "@promptless/promptless-cli",
+  "name": "@promptless/cli",
   "version": "0.1.0",
   "license": "MPL-2.0",
   "description": "CLI for helping tech writers. Right now it only detects the rhetorical and structural tells of LLM-generated prose and surfaces diagnostics for people to fix.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Promptless/promptless-cli.git"
+  },
+  "homepage": "https://github.com/Promptless/promptless-cli#readme",
+  "bugs": {
+    "url": "https://github.com/Promptless/promptless-cli/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
-    "promptless": "./dist/cli.js",
-    "pless": "./dist/cli.js"
+    "promptless": "./dist/cli.js"
   },
   "files": [
     "dist",
-    "src",
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "prepare": "npm run build",
     "promptless": "tsx src/cli.ts",
     "build": "tsup && chmod +x dist/cli.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "devDependencies": {
+    "@clack/prompts": "^1.8.1",
     "@types/mdast": "^4.0.4",
     "@types/node": "^22.10.0",
-    "@types/prompts": "^2.4.9",
     "@types/turndown": "^5.0.6",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
@@ -35,8 +48,5 @@
     "typescript": "~5.9.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0"
-  },
-  "dependencies": {
-    "prompts": "^2.4.2"
   }
 }

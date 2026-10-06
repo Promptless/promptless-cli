@@ -6,22 +6,21 @@ usage:
   promptless completion <shell>
 
 shells:
-  zsh    zsh completion (bound to both \`promptless\` and \`pless\`)
+  zsh    zsh completion
   bash   bash completion
   fish   fish completion
 
 installation hints:
   zsh (persistent):
-    pless completion zsh > "\${fpath[1]}/_promptless" && compinit
+    promptless completion zsh > "\${fpath[1]}/_promptless" && compinit
   zsh (one-off in current shell):
-    source <(pless completion zsh)
+    source <(promptless completion zsh)
   bash (persistent, Homebrew layout):
-    pless completion bash > $(brew --prefix)/etc/bash_completion.d/promptless
+    promptless completion bash > $(brew --prefix)/etc/bash_completion.d/promptless
   bash (one-off):
-    source <(pless completion bash)
+    source <(promptless completion bash)
   fish:
-    pless completion fish > ~/.config/fish/completions/promptless.fish
-    pless completion fish > ~/.config/fish/completions/pless.fish
+    promptless completion fish > ~/.config/fish/completions/promptless.fish
 
 exit codes:
   0   script printed
@@ -39,12 +38,12 @@ function fishDescribe(s: string): string {
 
 function zshScript(): string {
   const items = COMMANDS.map((c) => `    '${c.name}:${zshDescribe(c.summary)}'`).join('\n')
-  return `#compdef promptless pless
-# Completion for \`promptless\` / \`pless\`. Regenerate via \`pless completion zsh\`.
+  return `#compdef promptless
+# Completion for \`promptless\`. Regenerate via \`promptless completion zsh\`.
 # Install (persistent):
-#   pless completion zsh > "\${fpath[1]}/_promptless" && compinit
+#   promptless completion zsh > "\${fpath[1]}/_promptless" && compinit
 # One-off for current shell:
-#   source <(pless completion zsh)
+#   source <(promptless completion zsh)
 
 local context curcontext="$curcontext" state line
 local -a subcommands
@@ -88,6 +87,8 @@ case $state in
           '--json[output JSON]' \\
           '(-h --help)'{-h,--help}'[show help]'
         ;;
+      setup)
+        ;;
     esac
     ;;
 esac
@@ -96,11 +97,11 @@ esac
 
 function bashScript(): string {
   const commandNames = COMMANDS.map((c) => c.name).join(' ')
-  return `# Bash completion for \`promptless\` / \`pless\`. Regenerate via \`pless completion bash\`.
+  return `# Bash completion for \`promptless\`. Regenerate via \`promptless completion bash\`.
 # Install (Homebrew layout):
-#   pless completion bash > $(brew --prefix)/etc/bash_completion.d/promptless
+#   promptless completion bash > $(brew --prefix)/etc/bash_completion.d/promptless
 # One-off for current shell:
-#   source <(pless completion bash)
+#   source <(promptless completion bash)
 
 _promptless_complete() {
   local cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -138,68 +139,45 @@ _promptless_complete() {
         COMPREPLY=($(compgen -W "--json -h --help" -- "$cur"))
       fi
       ;;
+    setup)
+      COMPREPLY=()
+      ;;
   esac
 }
 
 complete -F _promptless_complete promptless
-complete -F _promptless_complete pless
 `
 }
 
 function fishScript(): string {
   const lines: string[] = [
-    '# Fish completion for `promptless` / `pless`. Regenerate via `pless completion fish`.',
+    '# Fish completion for `promptless`. Regenerate via `promptless completion fish`.',
     '# Install:',
-    '#   pless completion fish > ~/.config/fish/completions/promptless.fish',
-    '#   pless completion fish > ~/.config/fish/completions/pless.fish',
+    '#   promptless completion fish > ~/.config/fish/completions/promptless.fish',
     '',
+    'complete -c promptless -f',
   ]
-  for (const bin of ['promptless', 'pless']) {
-    lines.push(`complete -c ${bin} -f`)
-    for (const c of COMMANDS) {
-      lines.push(
-        `complete -c ${bin} -n __fish_use_subcommand -a ${c.name} -d '${fishDescribe(c.summary)}'`,
-      )
-    }
+  for (const c of COMMANDS) {
     lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -l debug -d 'Show debug view with [N] markers'`,
+      `complete -c promptless -n __fish_use_subcommand -a ${c.name} -d '${fishDescribe(c.summary)}'`,
     )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -l color -d 'Force ANSI color on'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -l no-color -d 'Force ANSI color off'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -l format -x -a 'auto text markdown mdx pandoc' -d 'Input format'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -l from -x -d 'Pandoc input format'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -s h -l help -d 'Show help'`,
-    )
-    lines.push(`complete -c ${bin} -n '__fish_seen_subcommand_from slop-cop' -F`)
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from completion' -a 'zsh bash fish'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from login' -l no-browser -d 'Do not open a browser'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from login' -s h -l help -d 'Show help'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from logout' -s h -l help -d 'Show help'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from whoami' -l json -d 'Output JSON'`,
-    )
-    lines.push(
-      `complete -c ${bin} -n '__fish_seen_subcommand_from whoami' -s h -l help -d 'Show help'`,
-    )
-    lines.push('')
   }
+  lines.push(
+    "complete -c promptless -n '__fish_seen_subcommand_from slop-cop' -l debug -d 'Show debug view with [N] markers'",
+    "complete -c promptless -n '__fish_seen_subcommand_from slop-cop' -l color -d 'Force ANSI color on'",
+    "complete -c promptless -n '__fish_seen_subcommand_from slop-cop' -l no-color -d 'Force ANSI color off'",
+    "complete -c promptless -n '__fish_seen_subcommand_from slop-cop' -l format -x -a 'auto text markdown mdx pandoc' -d 'Input format'",
+    "complete -c promptless -n '__fish_seen_subcommand_from slop-cop' -l from -x -d 'Pandoc input format'",
+    "complete -c promptless -n '__fish_seen_subcommand_from slop-cop' -s h -l help -d 'Show help'",
+    "complete -c promptless -n '__fish_seen_subcommand_from slop-cop' -F",
+    "complete -c promptless -n '__fish_seen_subcommand_from completion' -a 'zsh bash fish'",
+    "complete -c promptless -n '__fish_seen_subcommand_from login' -l no-browser -d 'Do not open a browser'",
+    "complete -c promptless -n '__fish_seen_subcommand_from login' -s h -l help -d 'Show help'",
+    "complete -c promptless -n '__fish_seen_subcommand_from logout' -s h -l help -d 'Show help'",
+    "complete -c promptless -n '__fish_seen_subcommand_from whoami' -l json -d 'Output JSON'",
+    "complete -c promptless -n '__fish_seen_subcommand_from whoami' -s h -l help -d 'Show help'",
+    '',
+  )
   return lines.join('\n')
 }
 
