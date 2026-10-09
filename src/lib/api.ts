@@ -38,6 +38,14 @@ export class AuthError extends ApiError {
   }
 }
 
+/** The request never got an HTTP response: a connection failure or a timeout. */
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NetworkError'
+  }
+}
+
 export interface ParsedErrorBody {
   code: string | null
   message: string | null
@@ -117,7 +125,7 @@ export interface RequestOptions {
  *
  * @throws AuthError on 401.
  * @throws ApiError on any other non-2xx status.
- * @throws Error on a network failure or timeout. A caller's abort rethrows its signal's reason.
+ * @throws NetworkError on a connection failure or timeout. A caller's abort rethrows its signal's reason.
  */
 export async function request<T>(method: string, path: string, opts: RequestOptions): Promise<T> {
   const baseUrl = opts.baseUrl ?? API_BASE_URL
@@ -145,10 +153,10 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
   } catch (err) {
     if (opts.signal?.aborted) throw opts.signal.reason
     if (timeoutSignal.aborted) {
-      throw new Error(`${method} ${path} timed out after ${timeoutMs}ms contacting ${baseUrl}`)
+      throw new NetworkError(`${method} ${path} timed out after ${timeoutMs}ms contacting ${baseUrl}`)
     }
     const msg = err instanceof Error ? err.message : String(err)
-    throw new Error(`network error contacting ${baseUrl}: ${msg}`)
+    throw new NetworkError(`network error contacting ${baseUrl}: ${msg}`)
   }
 
   const body = parseJsonOrText(text)
@@ -163,16 +171,18 @@ export async function request<T>(method: string, path: string, opts: RequestOpti
   return (body ?? undefined) as T
 }
 
+/** `GET /v1/me`: the key's owner and the one organization the key is bound to. */
 export interface WhoamiResponse {
   user_id: string
   email: string
-  name?: string
-  organizations?: Array<{ id: string; name: string }>
+  name: string | null
+  organization_id: string
+  organization_name: string | null
 }
 
-export async function whoami(apiSecret: string): Promise<WhoamiResponse> {
+export async function whoami(apiSecret: string, baseUrl?: string): Promise<WhoamiResponse> {
   try {
-    return await request<WhoamiResponse>('GET', '/v1/me', { apiSecret })
+    return await request<WhoamiResponse>('GET', '/v1/me', { apiSecret, baseUrl })
   } catch (err) {
     // `/v1/me` answers 403 for a key bound to no user, which `promptless login` fixes.
     if (err instanceof ApiError && err.status === 403) {

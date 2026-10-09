@@ -88,6 +88,15 @@ case $state in
           '(-h --help)'{-h,--help}'[show help]'
         ;;
       setup)
+        _arguments \\
+          '--org[organization id]:org:' \\
+          '--docs-repo[documentation repository]:owner/repo:' \\
+          '*--source-repo[source repository]:owner/repo:' \\
+          '*--trigger-on[pull request event]:event:(opened first_approval merge updated)' \\
+          '--backfill[run on the last 7 days of merged pull requests]' \\
+          '--new-account[open the sign-up page]' \\
+          '--no-browser[do not open a browser; print URLs only]' \\
+          '(-h --help)'{-h,--help}'[show help]'
         ;;
     esac
     ;;
@@ -140,7 +149,15 @@ _promptless_complete() {
       fi
       ;;
     setup)
-      COMPREPLY=()
+      case "\${COMP_WORDS[COMP_CWORD-1]}" in
+        --trigger-on)
+          COMPREPLY=($(compgen -W "opened first_approval merge updated" -- "$cur"))
+          return
+          ;;
+      esac
+      if [[ "$cur" == -* ]]; then
+        COMPREPLY=($(compgen -W "--org --docs-repo --source-repo --trigger-on --backfill --new-account --no-browser -h --help" -- "$cur"))
+      fi
       ;;
   esac
 }
@@ -176,6 +193,14 @@ function fishScript(): string {
     "complete -c promptless -n '__fish_seen_subcommand_from logout' -s h -l help -d 'Show help'",
     "complete -c promptless -n '__fish_seen_subcommand_from whoami' -l json -d 'Output JSON'",
     "complete -c promptless -n '__fish_seen_subcommand_from whoami' -s h -l help -d 'Show help'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -l org -x -d 'Organization id'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -l docs-repo -x -d 'Documentation repository (owner/repo)'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -l source-repo -x -d 'Source repository (owner/repo)'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -l trigger-on -x -a 'opened first_approval merge updated' -d 'Pull request event'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -l backfill -d 'Run on the last 7 days of merged pull requests'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -l new-account -d 'Open the sign-up page'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -l no-browser -d 'Do not open a browser'",
+    "complete -c promptless -n '__fish_seen_subcommand_from setup' -s h -l help -d 'Show help'",
     '',
   )
   return lines.join('\n')

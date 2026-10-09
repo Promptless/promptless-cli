@@ -4,7 +4,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { after, before, describe, it } from 'node:test'
 
-import { ApiError, AuthError, parseErrorBody, request } from './api'
+import { ApiError, AuthError, NetworkError, parseErrorBody, request } from './api'
 
 describe('parseErrorBody', () => {
   it('reads a FastAPI string detail', () => {
@@ -194,7 +194,7 @@ describe('request', () => {
   it('times out', async () => {
     await assert.rejects(
       request('GET', '/slow', { apiSecret: 'k', baseUrl, timeoutMs: 50 }),
-      (err) => err instanceof Error && !(err instanceof ApiError) && /timed out/.test(err.message),
+      (err) => err instanceof NetworkError && /timed out/.test(err.message),
     )
   })
 

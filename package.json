@@ -2,7 +2,7 @@
   "name": "@promptless/cli",
   "version": "0.1.0",
   "license": "MPL-2.0",
-  "description": "CLI for helping tech writers. Right now it only detects the rhetorical and structural tells of LLM-generated prose and surfaces diagnostics for people to fix.",
+  "description": "CLI for technical writers: set up Promptless, detect LLM prose tells, and inspect documentation.",
   "type": "module",
   "repository": {
     "type": "git",

@@ -37,12 +37,8 @@ async function _run(argv: string[]): Promise<void> {
       process.stdout.write(JSON.stringify(me, null, 2) + '\n')
     } else {
       process.stdout.write(`${me.email}${me.name ? ` (${me.name})` : ''}\n`)
-      if (me.organizations && me.organizations.length > 0) {
-        process.stdout.write('Organizations:\n')
-        for (const org of me.organizations) {
-          process.stdout.write(`  - ${org.name} (${org.id})\n`)
-        }
-      }
+      const orgName = me.organization_name ?? me.organization_id
+      process.stdout.write(`Organization: ${orgName} (${me.organization_id})\n`)
     }
     process.exit(0)
   } catch (err) {
