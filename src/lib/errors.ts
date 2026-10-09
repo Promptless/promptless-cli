@@ -17,10 +17,14 @@ export const ERROR_CODES = [
   'login_failed',
   'network_error',
   'api_error',
+  'setup_unavailable',
   'github_not_connected',
   'cancelled',
   'config_invalid',
   'internal_error',
+  'admin_required',
+  'repos_not_installed',
+  'doc_collection_required',
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]
